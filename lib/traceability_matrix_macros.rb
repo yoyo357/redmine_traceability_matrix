@@ -71,8 +71,7 @@ module TraceabilityMatrixMacros
           option_display_description = true
         when /^-w/
           # width of array, in number of columns
-          split_nb_cols = arg.delete('-w=').strip
-          puts "nb columns param = " + split_nb_cols
+          split_nb_cols = arg.delete('-w=').to_i
         when /-sr/
           # display status of issues
           option_display_status_row = true
@@ -125,22 +124,42 @@ module TraceabilityMatrixMacros
       mt_ctrl.get_trackers(query_row_id, query_col_id)  
       mt_ctrl.build_list_of_issues
             
-      disp = String.new
-      disp << render(:partial => 'mt/mt_synthese',
-                     :locals => {:issue_cols => mt_ctrl.issue_cols, :query_cols => mt_ctrl.query_cols,
-                     :issue_rows => mt_ctrl.issue_rows, :query_rows => mt_ctrl.query_rows, :issue_pairs => mt_ctrl.issue_pairs,
-                     :not_seen_issue_cols => mt_ctrl.not_seen_issue_cols, :split_nb_cols => split_nb_cols.to_i,
-                     :show_subject_row => show_subject_row,
-                     :show_subject_col => show_subject_col,
-	            	     :option_display_description => option_display_description,
-                     :option_display_id_row => option_display_id_row,
-                     :option_display_id_col => option_display_id_col,
-                     :option_display_status_row => option_display_status_row,
-                     :option_display_status_col => option_display_status_col,
-                     :custom_field_id => custom_field_id})
-      
-      return disp.html_safe
+      if ((mt_ctrl.issue_rows.length == 0) or (mt_ctrl.issue_cols.length == 0))
+        return textilizable "(!) _No matrix available, because at least one list of issues is empty._"
+      end
 
+      disp = String.new
+      
+      nb_split_table = (mt_ctrl.issue_cols.count.to_f/split_nb_cols).ceil
+      nb_split_table.times do |table_index|
+        if (table_index + 1) * split_nb_cols <= mt_ctrl.issue_cols.count
+          nb_col_to_display = split_nb_cols
+        else
+          nb_col_to_display = mt_ctrl.issue_cols.count - table_index * split_nb_cols
+        end
+        if nb_split_table > 1
+          disp << "Table #{table_index+1} sur #{nb_split_table}\n\n"
+        end
+        disp << "table{width:100%}.\n||_\\#{nb_col_to_display}.#{mt_ctrl.query_cols.name}|\n"
+        disp << "|_.#{mt_ctrl.query_rows.name}|"
+        mt_ctrl.issue_cols[(table_index * split_nb_cols) .. (table_index * split_nb_cols + nb_col_to_display - 1)].each do |issue_col|
+          disp << "=." + mt_ctrl.format_issue(issue_col, option_display_id_col, show_subject_col, option_display_status_col, option_display_description, custom_field_id) + "|"
+        end
+        disp << "\n"
+        mt_ctrl.issue_rows.each do |issue_row|
+          disp << "|=." + mt_ctrl.format_issue(issue_row, option_display_id_row, show_subject_row, option_display_status_row, option_display_description, custom_field_id) + "|"
+          mt_ctrl.issue_cols[(table_index * split_nb_cols) .. (table_index * split_nb_cols + nb_col_to_display - 1)].each do |issue_col|
+            if mt_ctrl.issue_pairs.has_key?(issue_row) and !(mt_ctrl.issue_pairs[issue_row][issue_col]).nil?
+              disp << "=." << 10003
+            end
+            disp << "|"
+          end
+          disp << "\n"
+        end
+        disp << "\n"
+      end
+      return textilizable(disp)
+      
     end # Fin macro
 
 
@@ -248,19 +267,38 @@ module TraceabilityMatrixMacros
       mt_ctrl.get_trackers(query_col1_id, query_col2_id)  
       mt_ctrl.build_list_of_issues
       
+      if ((mt_ctrl.issue_rows.length == 0) or (mt_ctrl.issue_cols.length == 0))
+        return textilizable "(!) _No matrix available, because at least one list of issues is empty._"
+      end
+      
       disp = String.new
-      disp << render(:partial => 'mt/mt_details', :locals => {:issue_cols => mt_ctrl.issue_cols, :query_cols => mt_ctrl.query_cols,
-                     :issue_rows => mt_ctrl.issue_rows, :query_rows => mt_ctrl.query_rows, :issue_pairs => mt_ctrl.issue_pairs,
-                     :not_seen_issue_cols => mt_ctrl.not_seen_issue_cols,
-                     :option_display_id_col1 => option_display_id_col1,
-                     :option_display_id_col2 => option_display_id_col2,
-                     :option_display_status_col1 => option_display_status_col1,
-                     :option_display_status_col2 => option_display_status_col2,
-                     :option_display_description_col1 => option_display_description_col1,
-                     :option_display_description_col2 => option_display_description_col2,
-                     :custom_field_id => custom_field_id})
-      return disp.html_safe
 
+      disp << "table{width:100%}.\n|_.#{mt_ctrl.query_rows.name}|_.#{mt_ctrl.query_cols.name}|\n"
+      mt_ctrl.issue_rows.each do |issue_col1|
+        # issues paired with col1 :
+        issues_col2 = mt_ctrl.issue_pairs[issue_col1]
+        disp << "|"
+        if !issues_col2.nil? && issues_col2.length > 1
+          disp << "/#{issues_col2.length.to_s}."
+        end
+        disp << mt_ctrl.format_issue(issue_col1, option_display_id_col1, true, option_display_status_col1, option_display_description_col1, custom_field_id)
+        if !issues_col2.nil? && issues_col2.length > 0
+          issues_col2.each_key do |issue_col2|
+            disp << "|" + mt_ctrl.format_issue(issue_col2, option_display_id_col2, true, option_display_status_col2, option_display_description_col2, custom_field_id) + "|\n"
+          end
+        else
+          disp << "||\n"
+        end
+      end
+      
+      if mt_ctrl.not_seen_issue_cols.length > 0
+        disp << "|/#{mt_ctrl.not_seen_issue_cols.length.to_s}."
+        mt_ctrl.not_seen_issue_cols.each do |issue_not_seen|
+          disp << "|" + mt_ctrl.format_issue(issue_not_seen, option_display_id_col2, true, option_display_status_col2, option_display_description_col2, custom_field_id) + "|\n"
+        end
+      end
+      return textilizable(disp)
+      
     end # Fin macro
         
   end

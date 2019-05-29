@@ -125,6 +125,30 @@ class MtController < ApplicationController
     flash[:error] = l(:'traceability_matrix.setup')
     render
   end
+  
+  def format_issue(issue, option_display_id, option_display_subject, option_display_status, option_display_description, custom_field_id)
+    disp = ""
+    if option_display_id
+      disp << "##{issue.id.to_s}, "
+    end
+    if option_display_status
+      disp << "#{issue.status}, "
+    end
+    if option_display_subject
+      disp << issue.subject
+    end
+    issue.custom_field_values.each do |value|
+      if value.custom_field.id == custom_field_id && "#{value}" != ""
+        disp << "\n#{value}"
+      end
+    end
+    if option_display_description && issue.description != ""
+      disp << "\n#{issue.description}"
+    end
+
+    disp
+  end
+
 end
 
 
