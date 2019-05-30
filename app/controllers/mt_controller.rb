@@ -86,8 +86,7 @@ class MtController < ApplicationController
     
   end
   
-  def get_trackers(query_rows_id=Setting.plugin_traceability_matrix['tracker0'],
-                   query_cols_id=Setting.plugin_traceability_matrix['tracker1'])
+  def get_trackers(query_rows_id, query_cols_id)
     @tracker_rows = nil
     @query_rows = IssueQuery.find_by_id(query_rows_id)
     if @project.nil?
