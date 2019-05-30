@@ -25,7 +25,8 @@ module TraceabilityMatrixMacros
          "* -ic : Displays the ID of issues in columns.\n" +
          "* -s : Displays the status of issues in rows and columns.\n" +
          "* -sr : Displays the status of issues in rows.\n" +
-         "* -sc : Displays the status of issues in columns.\n\n" +
+         "* -sc : Displays the status of issues in columns.\n" +
+         "* -b : Sort issues by subject instead of ID.\n\n" +
          "+Examples:+\n" +
          "<pre>{{traceability_matrix_short(1,2)}} ->  Show the matrix using issue queries with id 1 and 2\n" +
          "{{traceability_matrix_short(20,144,-w=20)}} Show the matrix, split into tables that contains 20 columns\n" +
@@ -63,6 +64,7 @@ module TraceabilityMatrixMacros
       option_display_id_col = false
       custom_field_id = 0
       project = nil
+      sort_subject = false
       
       args[2..-1].each do |arg|
         case arg
@@ -112,6 +114,8 @@ module TraceabilityMatrixMacros
           project = Project.find(arg[3..arg.length-1])
         when /^cf_/
           custom_field_id = arg[3..arg.length-1].to_i
+        when /^-b/
+          sort_subject = true
         else
           puts "sinon" + arg
         end
@@ -122,7 +126,7 @@ module TraceabilityMatrixMacros
       
       mt_ctrl.init_macro_context(project)
       mt_ctrl.get_trackers(query_row_id, query_col_id)  
-      mt_ctrl.build_list_of_issues
+      mt_ctrl.build_list_of_issues(sort_subject)
             
       if ((mt_ctrl.issue_rows.length == 0) or (mt_ctrl.issue_cols.length == 0))
         return textilizable "(!) _No matrix available, because at least one list of issues is empty._"
@@ -170,6 +174,7 @@ module TraceabilityMatrixMacros
          "* _issue_query_id_col1_ : id of the issue query to get the list of issues to column 1 \n" +
          "* _issue_query_id_col2_ : id of the issue query to get the list of issues to column 2 \n\n" +
          "+Options:+\n" +
+         "* -p=project_id : Restrict explicitly to project. The parameter project_id can be either id number or name.\n" +
          "* -d : Displays the description of issues in both columns.\n" +
          "* -d1 : Displays the description of issues in column 1.\n" +
          "* -d2 : Displays the description of issues in column 2.\n" +
@@ -178,8 +183,9 @@ module TraceabilityMatrixMacros
          "* -i2 : Displays the ID of issues in column 2.\n" +
          "* -s : Displays the status of issues in both columns.\n" +
          "* -s1 : Displays the status of issues in column 1.\n" +
-         "* -s2 : Displays the status of issues in column 2.\n\n" +
+         "* -s2 : Displays the status of issues in column 2.\n" +
          "* cf_xx : Display the custom field with number xx.\n" +
+         "* -b : Sort issues by subject instead of ID.\n\n" +
          "+Examples:+\n" +
          "<pre>{{traceability_matrix_detailed(1,2)}} ->  Show the matrix using issue queries with id 1 and 2\n" +
          "{{traceability_matrix_detailed(20,144,-d)}} Show the matrix, with description of issues\n</pre>\n"
@@ -212,6 +218,7 @@ module TraceabilityMatrixMacros
       option_display_id_col2 = false
       custom_field_id = 0
       project = nil
+      sort_subject = false
             
       args[2..-1].each do |arg|
         case arg
@@ -255,6 +262,8 @@ module TraceabilityMatrixMacros
           project = Project.find(arg[3..arg.length-1])
         when /^cf_/
           custom_field_id = arg[3..arg.length-1].to_i
+        when /^-b/
+          sort_subject = true
         else
           puts "sinon" + arg
         end
@@ -265,7 +274,7 @@ module TraceabilityMatrixMacros
       
       mt_ctrl.init_macro_context(project)
       mt_ctrl.get_trackers(query_col1_id, query_col2_id)  
-      mt_ctrl.build_list_of_issues
+      mt_ctrl.build_list_of_issues(sort_subject)
       
       if ((mt_ctrl.issue_rows.length == 0) or (mt_ctrl.issue_cols.length == 0))
         return textilizable "(!) _No matrix available, because at least one list of issues is empty._"

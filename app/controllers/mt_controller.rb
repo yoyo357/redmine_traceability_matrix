@@ -25,9 +25,14 @@ class MtController < ApplicationController
     @project = project
   end
   
-  def build_list_of_issues 
-    @issue_rows = @query_rows.issues().sort {|issue_a, issue_b| issue_a.id <=> issue_b.id}
-    @issue_cols = @query_cols.issues().sort {|issue_a, issue_b| issue_a.id <=> issue_b.id}
+  def build_list_of_issues(sort_subject)
+    if sort_subject
+      @issue_rows = @query_rows.issues().sort {|issue_a, issue_b| issue_a.subject <=> issue_b.subject}
+      @issue_cols = @query_cols.issues().sort {|issue_a, issue_b| issue_a.subject <=> issue_b.subject}
+    else
+      @issue_rows = @query_rows.issues().sort {|issue_a, issue_b| issue_a.id <=> issue_b.id}
+      @issue_cols = @query_cols.issues().sort {|issue_a, issue_b| issue_a.id <=> issue_b.id}
+    end
     @issue_pairs = {}
     @not_seen_issue_cols = {}
     
